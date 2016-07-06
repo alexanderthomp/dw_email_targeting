@@ -4,6 +4,7 @@ RUN sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/a
     gpg --keyserver keyserver.ubuntu.com --recv-key E084DAB9 &&\
     apt-get update &&\
     apt-get -y --allow-unauthenticated install r-base
+RUN ln -s /config/conf.yml conf.yml
 RUN apt-get -y install gdebi-core
 RUN apt-get -y install wget
 RUN apt-get -y install links2 links lynx w3m
