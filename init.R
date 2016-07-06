@@ -1,0 +1,6 @@
+install.packages("DT",repos = "http://cran.us.r-project.org/")
+install.packages("RPostgreSQL",repos = "http://cran.us.r-project.org/")
+install.packages("xtable",repos = "http://cran.us.r-project.org/")
+options(repos = c(CRAN = "http://cran.rstudio.com"))
+install.packages('shiny')
+install.packages("yaml",repos = "http://cran.us.r-project.org/")

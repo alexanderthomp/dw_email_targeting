@@ -1,0 +1,8 @@
+##DEV
+redshift:
+  db-name: 'datawarehouse'
+  port: 5439
+  user: 'kathryn'
+  password: 'KATE@data.science.2ndfloor'
+  host: '10.1.4.248'
+  
