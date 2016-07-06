@@ -1,5 +1,7 @@
 FROM ubuntu:14.04
-COPY * $HOME/
+
+RUN mkdir app
+COPY * $HOME/app
 RUN sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list' &&\
     gpg --keyserver keyserver.ubuntu.com --recv-key E084DAB9 &&\
     apt-get update &&\
