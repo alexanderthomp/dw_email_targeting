@@ -22,5 +22,5 @@ RUN Rscript /app/init.R
 
 RUN ln -s /app /srv/shiny-server/email-targeting
 
-EXPOSE 7890
+#EXPOSE 7890
 EXPOSE 3838
