@@ -116,7 +116,11 @@ server <- function(input, output) {
         output$warning <- renderText({warningText})
         
         ### set up the SQL connection to redshift
-        location <- paste0(getwd(),"/config.yml")
+        if(dir.exist('/config/conf.yml')){
+            location <-'/config/conf.yml'
+            }else{
+            location <-'conf.yml'
+        }
         configFile <- yaml.load_file(location)
         mycon <- dbConnect(PostgreSQL(), 
                            user=configFile$redshift$user, 
