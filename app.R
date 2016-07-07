@@ -116,7 +116,7 @@ server <- function(input, output) {
         output$warning <- renderText({warningText})
         
         ### set up the SQL connection to redshift
-        if(dir.exist('/config/conf.yml')){
+        if(dir.exists('/config/conf.yml')){
             location <-'/config/conf.yml'
             }else{
             location <-'conf.yml'
