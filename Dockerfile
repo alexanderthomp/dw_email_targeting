@@ -4,7 +4,7 @@ RUN mkdir app
 COPY app.R init.R $HOME/app/
 COPY initialise.R $HOME/
 
-RUN ln -s /config/conf.yml conf.yml
+RUN ln -s /config/conf.yml /srv/shiny-server/email-targeting/conf.yml
 
 RUN sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list' &&\
     gpg --keyserver keyserver.ubuntu.com --recv-key E084DAB9 &&\
