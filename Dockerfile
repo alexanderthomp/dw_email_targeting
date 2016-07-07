@@ -4,8 +4,6 @@ RUN mkdir app
 COPY app.R init.R $HOME/app/
 COPY initialise.R $HOME/
 
-RUN ln -s /config/conf.yml /srv/shiny-server/email-targeting/conf.yml
-
 RUN sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list' &&\
     gpg --keyserver keyserver.ubuntu.com --recv-key E084DAB9 &&\
     apt-get update &&\
@@ -21,6 +19,6 @@ RUN gdebi --option=APT::Get::force-yes=1,APT::Get::Assume-Yes=1 -n shiny-server-
 RUN Rscript /app/init.R
 
 RUN ln -s /app /srv/shiny-server/email-targeting
-
+RUN ln -s /config/conf.yml /srv/shiny-server/email-targeting/conf.yml
 #EXPOSE 7890
 EXPOSE 3838
