@@ -3,12 +3,33 @@ library(shiny)
 library(DT)
 library(RPostgreSQL)
 library(yaml)
+library(pool)
+library(DBI)
+
+
+if(dir.exists('/config/conf.yml')){
+    location <-'/config/conf.yml'
+}else{
+    location <-'conf.yml'
+}
+### create the pool of SQL connections so it works for multiple people at a time
+pool <- dbPool(
+    drv = RPostgreSQL::PostgreSQL(),
+    dbname = configFile$redshift$`db-name`,
+    host = configFile$redshift$host,
+    user = configFile$redshift$user,
+    password = configFile$redshift$password,
+    port = configFile$redshift$port
+)
+
+
 ui <- fluidPage(
     titlePanel("Product Selection Tool"),
         fluidRow(
         column(3,
                
-               sliderInput(inputId="priceRange", label="Price Range",min=0,max=100,value=c(10,20)),
+               textInput(inputId="pricemin", label="minimum price",value=10),
+               textInput(inputId="pricemax", label="maximum price",value=30),
                selectInput(inputId  = "InFamily", label = "Product Family", 
                            choices = c("All","accessories","baby care","experiences","food & drink","gardens & outdoors",
                                        "haberdashery","health & beauty","home","jewellery","pet accessories",
@@ -32,7 +53,7 @@ ui <- fluidPage(
         ),
         column(3,
                radioButtons(inputId="delivery",label="has free delivery?",
-                            choices=c("Everything","free","standard"),selected="Everything"),
+                            choices=c("Everything","yes","no"),selected="Everything"),
                radioButtons(inputId="deliveryExpress",label="has Express delivery?",
                             choices=c("Everything","yes","no"),selected="Everything")
         )
@@ -115,28 +136,16 @@ server <- function(input, output) {
         }
         output$warning <- renderText({warningText})
         
-        ### set up the SQL connection to redshift
-        if(dir.exists('/config/conf.yml')){
-            location <-'/config/conf.yml'
-            }else{
-            location <-'conf.yml'
-        }
-        configFile <- yaml.load_file(location)
-        mycon <- dbConnect(PostgreSQL(), 
-                           user=configFile$redshift$user, 
-                           password=configFile$redshift$password, 
-                           dbname=configFile$redshift$`db-name`, 
-                           host=configFile$redshift$host,
-                           port=configFile$redshift$port)
-        
-        ### for some inputs, create the SQL query part for each selection.
+         
+         ### for some inputs, create the SQL query part for each selection.
+        ### For sale
         if(input$OnSale == "yes"){
             sale <- 'true'
         }else{if(input$OnSale == "no"){
             sale <- 'false'
         }else{sale <- "\'True\',\'FALSE\'"} }
         
-        
+        ### select from family
         fam <- c("All","accessories","baby care","experiences","food & drink","gardens & outdoors",
                  "haberdashery","health & beauty","home","jewellery","pet accessories",
                  "prints, pictures & art","stationary & parties","toys, games & sport",
@@ -149,6 +158,7 @@ server <- function(input, output) {
             fam_keyword <- paste0('\'',fam_key,'\'')
         }
         
+        ### Seelct group
         if(input$group == "All"){
             group_keyword <- " IS NOT NULL"
         }else{
@@ -156,7 +166,7 @@ server <- function(input, output) {
             group_keyword <- paste0('IN (\'',group_key,'\')')
         }
         
-        
+        ### Is the item personalisible or not?
         if(input$personalise == "yes"){
             personalised <- " > 0"
         }else{
@@ -166,7 +176,7 @@ server <- function(input, output) {
                 personalised <- " >= 0"}
         }
         
-        
+        ### free delivery?
         if(input$delivery == "yes"){
             deliveryOption <- " IN (\'Free\') "
         }else{
@@ -176,7 +186,7 @@ server <- function(input, output) {
                 deliveryOption <- " IS NOT NULL" }
         }        
         
-        
+        ### Is there express delivery available?
         if(input$deliveryExpress == "yes"){
             deliver_express <-  " IN (\'TRUE\') "
         }else{ 
@@ -186,6 +196,7 @@ server <- function(input, output) {
                 deliver_express <- " IS NOT NULL" }
         }     
         
+        ### To aviod promoting products where the partner is on vacation, only select those not.
         query_hols <- 'SELECT DISTINCT noths.dimension_partner_.original_id as partner_id
         FROM noths.facts_partner_holidays
         JOIN noths.dimension_partner_
@@ -206,9 +217,11 @@ server <- function(input, output) {
         (SELECT ID + 3
         FROM noths.dimension_date
         WHERE DATE = CURRENT_DATE))'
-        hols <- dbGetQuery(mycon,query_hols)    
+        hols <- dbGetQuery(pool,query_hols)    
         notonhols <- paste0(paste0(hols$partner_id,collapse=","))
         
+        ### Seelct products. Prereqa: Avilable, in stock ot made to order, partner is active.
+        ### the rest come from the parameters input with the buttons.
         query_prod <- gsub("\n","",paste0('select product_name, product_code, partner_name,
                                           current_gross_price, gross_price_on_sale, delivery_time, delivery_class,
                                           url, family, partner_state, image_url, \"group\",
@@ -218,7 +231,7 @@ server <- function(input, output) {
                                           WHERE current_availability = \'Available\' 
                                           AND current_stock_status IN (\'In Stock\',\'made to order\')
                                           AND partner_state = \'active\'
-                                          AND current_gross_price BETWEEN ', input$priceRange[1], ' AND ', input$priceRange[2], '
+                                          AND current_gross_price BETWEEN ', input$pricemin, ' AND ', input$pricemax, '
                                           AND published_date > date(\'',as.character(input$publishedDate),'\'
                                           ) AND LOWER(product_name) LIKE (\'%', input$keyword ,'%\')
                             AND currently_on_sale IN (',sale,')
@@ -230,12 +243,14 @@ server <- function(input, output) {
                                           and partner_id IN (', notonhols ,')'
                                           ) )
         
-        products <- dbGetQuery(mycon,query_prod)    
+        products <- dbGetQuery(pool,query_prod)    
         
+        ### If this search returns results, 
         if(dim(products)[1] > 0){
-            
             product_codes <- paste0(paste0(products$product_code,collapse=","))
             
+            ### the products code from above are used int he next searches to limit the results found
+            ### get the page views
             query_views <- gsub("\n","",paste0('select product_code, count(*) as page_views 
                                                from noths.product_page_views_by_date  
                                                WHERE date BETWEEN date(\'',as.character(input$rangeDates[1]),'\'
@@ -243,8 +258,9 @@ server <- function(input, output) {
                                       )
                                                AND product_code IN (',product_codes,')
                                                group by product_code') )
-            views <- dbGetQuery(mycon,query_views)  
+            views <- dbGetQuery(pool,query_views)  
             
+            ### get the ttv and number of checkouts
             query_trans <- gsub("\n","",paste0('select product_code, sum(ttv) as TTV,
                                                count(distinct checkout_id) as num_checkouts
                                                from transaction_line  
@@ -253,10 +269,12 @@ server <- function(input, output) {
                                             ) 
                                                AND product_code IN (',product_codes,')
                                                group by product_code') )
-            trans <- dbGetQuery(mycon,query_trans)  
+            trans <- dbGetQuery(pool,query_trans)  
             
-            dbDisconnect(dbListConnections(PostgreSQL())[[1]]) 
+        
             
+            ### put the files together into one table. If there are any NAs, replace them with 0. 
+            ### (i.e. if there are no page views or checkouts)
             part_file <- data.frame(products, page_views=views[match(products$product_code,views$product_code),-1]) 
             part_file$page_views <- replace(part_file$page_views,is.na(part_file$page_views),0) 
             
@@ -271,22 +289,87 @@ server <- function(input, output) {
                 
             }
             
+            ### Add in conversion 
             conversion <- full_file$num_checkouts / full_file$page_views
             conversion <- round(replace(conversion,is.na(conversion),0),2)
             
+            ### Put the file together, select only the needed columns
             full_file2 <- cbind(full_file,conversion)
             toSelect <- c("product_name","product_code","partner_name","family","group","current_gross_price","gross_price_on_sale",
                           "delivery_time","delivery_class","days_live","page_views","ttv","num_checkouts","conversion","url"  )
-            
             small_file <-full_file2[,match(toSelect,names(full_file2))]
             
+            ### get the images and make the first column
             img <- full_file[,which(names(full_file) =="image_url")]
             image <- paste0("<img src=\"", img," \" height=\"150\"></img>")
-            data.frame(cbind(image,small_file))
+            newtab <- data.frame(cbind(image,small_file))
+            
+            prod <- dbGetQuery(mycon,'SELECT product_code,
+                               CASE
+                               WHEN published_date < date(\'2014-06-01\') THEN DATEDIFF(DAY, date(\'2014-06-01\'), CURRENT_DATE)
+                               WHEN published_date >= date(\'2014-06-01\') THEN DATEDIFF(DAY, published_date, CURRENT_DATE)
+                               END AS valid_days_live
+                               FROM product
+                               WHERE current_availability = \'Available\'
+                               AND published_date IS NOT NULL
+                               AND published_date != CURRENT_DATE')
+            
+            ctq <- dbGetQuery(mycon,'SELECT product_code,
+                              COUNT(DISTINCT checkout_id) AS total_checkouts,
+                              SUM(ttv) AS total_ttv
+                              FROM transaction_line
+                              WHERE date > date(\'2014-06-01\')
+                              GROUP BY product_code ')
+            pv <- dbGetQuery(mycon,'SELECT product_code, SUM(number_of_views) AS total_page_views
+                             FROM noths.product_page_views_by_date
+                             WHERE date > (\'2014-06-01\')
+                             GROUP BY product_code')
+            
+            dbDisconnect(dbListConnections(PostgreSQL())[[1]]) 
+            
+            db <- data.frame(prod, ctq[match(prod$product_code, ctq$product_code), ], pv[match(prod$product_code, pv$product_code), ])
+            
+            # replace NA total_checkouts, total_ttv & total_quantity with 0 
+            db$total_checkouts <- replace(db$total_checkouts, is.na(db$total_checkouts), 0)
+            db$total_ttv <- replace(db$total_ttv, is.na(db$total_ttv), 0)
+            db$total_page_views <- replace(db$total_page_views, is.na(db$total_page_views), 0)
+            
+            # tidy up db
+            duplicateColnames <- grep("product_code", colnames(db))[-1]
+            db <- db[, -duplicateColnames]; rm(duplicateColnames)
+            
+            # create ttv by day
+            db$ttv_per_day <- db$total_ttv / db$valid_days_live
+            
+            # create 'conversion' metric
+            db$conversion <- ifelse(db$total_checkouts == 0 & db$total_page_views == 0, 0, db$total_checkouts / db$total_page_views)
+            
+            # remove products with conversion > 1 (can happen if page_views not tracked properly)
+            db <- db[which(db$conversion <= 1), ]
+            
+            # normalise ttv per day globally
+            db$ttv_per_dayNorm <- (db$ttv_per_day - min(db$ttv_per_day)) / diff(range(db$ttv_per_day))
+            
+            # normalise conversion globally (i.e., regardless of product family)
+            db$conversionNorm <- (db$conversion - min(db$conversion)) / diff(range(db$conversion))
+            
+            db$impact <- db$conversionNorm*db$ttv_per_dayNorm
+            db$impactRank <- rank(-db$impact)
+            db <- db[, grep("product_code|impactRank", colnames(db))]
+            
+            ### add the impact next to the photo order by impact and re number imapct.
+            newtab2 <- data.frame(newtab[,1],impact=db[match(newtab$product_code,db$product_code),-1],newtab[,-1])
+            newtab2 <- data.frame(images=newtab[,1],impact=db[match(newtab$product_code,db$product_code),-1],newtab[,-1])
+            newtab2 <- newtab2[order(newtab2$impact),]
+            newtab2$impact <- 1:nrow(newtab2)
+            newtab2
+            
      }else{
-            stop("There are no results for this query. Please try different search parameters.")}
+        ### If there are no results from the search parameters, return a wanring to try different parameters 
+        stop("There are no results for this query. Please try different search parameters.")}
     })  
     
+    ### Outputs the 
     output$tab1 <- DT::renderDataTable({
         tab2() 
     },escape=FALSE)
