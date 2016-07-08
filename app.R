@@ -15,11 +15,11 @@ if(dir.exists('/config/conf.yml')){
 ### create the pool of SQL connections so it works for multiple people at a time
 pool <- dbPool(
     drv = RPostgreSQL::PostgreSQL(),
-    dbname = configFile$redshift$`db-name`,
-    host = configFile$redshift$host,
-    user = configFile$redshift$user,
-    password = configFile$redshift$password,
-    port = configFile$redshift$port
+    dbname = location$redshift$`db-name`,
+    host = location$redshift$host,
+    user = location$redshift$user,
+    password = location$redshift$password,
+    port = location$redshift$port
 )
 
 
