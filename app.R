@@ -4,7 +4,6 @@ library(DT)
 library(RPostgreSQL)
 library(yaml)
 library(pool)
-library(DBI)
 
 
 if(dir.exists('/config/conf.yml')){
@@ -14,8 +13,8 @@ if(dir.exists('/config/conf.yml')){
 }
 configFile <- yaml.load_file(location)
 ### create the pool of SQL connections so it works for multiple people at a time
-pool <- dbPool(
-    #test <- dbConnect(
+#poolNames <- dbPool(
+poolNames <- dbPool(
     drv = RPostgreSQL::PostgreSQL(),
     dbname = configFile$redshift$'db-name',
     host = configFile$redshift$host,
@@ -127,6 +126,26 @@ server <- function(input, output) {
     
     tab2 <- eventReactive(input$go, { 
         
+        if(dir.exists('/config/conf.yml')){
+            location <-'/config/conf.yml'
+        }else{
+            location <-'conf.yml'
+        }
+        configFile <- yaml.load_file(location)
+        ### create the pool of SQL connections so it works for multiple people at a time
+        #poolNames <- dbPool(
+        poolNames <- dbPool(
+            drv = RPostgreSQL::PostgreSQL(),
+            dbname = configFile$redshift$'db-name',
+            host = configFile$redshift$host,
+            user = configFile$redshift$user,
+            password = configFile$redshift$password,
+            port = configFile$redshift$port
+        )
+        
+        
+        
+        
         ### some warnings in case the dates are miss set or not all objects will have been published over the date range
         if(as.character.Date(input$publishedDate) >  as.character.Date(as.character(input$rangeDates[2])))  {
             warningText <- "The published date is set after the end of the date range. Please change"
@@ -197,7 +216,7 @@ server <- function(input, output) {
             }else{
                 deliver_express <- " IS NOT NULL" }
         }     
-        
+         print("before query 1")
         ### To aviod promoting products where the partner is on vacation, only select those not.
         query_hols <- 'SELECT DISTINCT noths.dimension_partner_.original_id as partner_id
         FROM noths.facts_partner_holidays
@@ -219,9 +238,12 @@ server <- function(input, output) {
         (SELECT ID + 3
         FROM noths.dimension_date
         WHERE DATE = CURRENT_DATE))'
-        hols <- dbGetQuery(pool,query_hols)    
+        hols <- dbGetQuery(poolNames,query_hols)    
         notonhols <- paste0(paste0(hols$partner_id,collapse=","))
         
+        print("after query 1")
+        
+        print("before query 2")
         ### Seelct products. Prereqa: Avilable, in stock ot made to order, partner is active.
         ### the rest come from the parameters input with the buttons.
         query_prod <- gsub("\n","",paste0('select product_name, product_code, partner_name,
@@ -245,12 +267,16 @@ server <- function(input, output) {
                                           and partner_id IN (', notonhols ,')'
                                           ) )
         
-        products <- dbGetQuery(pool,query_prod)    
+        products <- dbGetQuery(poolNames,query_prod)    
+        
+        print("after query 2")
         
         ### If this search returns results, 
         if(dim(products)[1] > 0){
             product_codes <- paste0(paste0(products$product_code,collapse=","))
             
+            
+            print("before query 3")
             ### the products code from above are used int he next searches to limit the results found
             ### get the page views
             query_views <- gsub("\n","",paste0('select product_code, count(*) as page_views 
@@ -260,8 +286,9 @@ server <- function(input, output) {
                                       )
                                                AND product_code IN (',product_codes,')
                                                group by product_code') )
-            views <- dbGetQuery(pool,query_views)  
+            views <- dbGetQuery(poolNames,query_views)  
             
+            print("before query 4")
             ### get the ttv and number of checkouts
             query_trans <- gsub("\n","",paste0('select product_code, sum(ttv) as TTV,
                                                count(distinct checkout_id) as num_checkouts
@@ -271,8 +298,8 @@ server <- function(input, output) {
                                             ) 
                                                AND product_code IN (',product_codes,')
                                                group by product_code') )
-            trans <- dbGetQuery(pool,query_trans)  
-            
+            trans <- dbGetQuery(poolNames,query_trans)  
+            print("after query 4")
         
             
             ### put the files together into one table. If there are any NAs, replace them with 0. 
@@ -306,7 +333,8 @@ server <- function(input, output) {
             image <- paste0("<img src=\"", img," \" height=\"150\"></img>")
             newtab <- data.frame(cbind(image,small_file))
             
-            prod <- dbGetQuery(mycon,'SELECT product_code,
+            print("before query 5")
+            prod <- dbGetQuery(poolNames,'SELECT product_code,
                                CASE
                                WHEN published_date < date(\'2014-06-01\') THEN DATEDIFF(DAY, date(\'2014-06-01\'), CURRENT_DATE)
                                WHEN published_date >= date(\'2014-06-01\') THEN DATEDIFF(DAY, published_date, CURRENT_DATE)
@@ -315,19 +343,22 @@ server <- function(input, output) {
                                WHERE current_availability = \'Available\'
                                AND published_date IS NOT NULL
                                AND published_date != CURRENT_DATE')
+            print("after query 5")
             
-            ctq <- dbGetQuery(mycon,'SELECT product_code,
+            print("before query 6")
+            ctq <- dbGetQuery(poolNames,'SELECT product_code,
                               COUNT(DISTINCT checkout_id) AS total_checkouts,
                               SUM(ttv) AS total_ttv
                               FROM transaction_line
                               WHERE date > date(\'2014-06-01\')
                               GROUP BY product_code ')
-            pv <- dbGetQuery(mycon,'SELECT product_code, SUM(number_of_views) AS total_page_views
+            
+            print("before query 7")
+            pv <- dbGetQuery(poolNames,'SELECT product_code, SUM(number_of_views) AS total_page_views
                              FROM noths.product_page_views_by_date
                              WHERE date > (\'2014-06-01\')
                              GROUP BY product_code')
             
-            dbDisconnect(dbListConnections(PostgreSQL())[[1]]) 
             
             db <- data.frame(prod, ctq[match(prod$product_code, ctq$product_code), ], pv[match(prod$product_code, pv$product_code), ])
             
@@ -378,3 +409,4 @@ server <- function(input, output) {
 }
 
 shinyApp(ui=ui,server=server)
+
