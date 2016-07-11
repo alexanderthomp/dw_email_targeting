@@ -26,7 +26,7 @@ poolNames <- dbPool(
 
 ui <- fluidPage(
     titlePanel("Product Selection Tool"),
-        fluidRow(
+    fluidRow(
         column(3,
                
                textInput(inputId="pricemin", label="minimum price",value=10),
@@ -58,7 +58,7 @@ ui <- fluidPage(
                radioButtons(inputId="deliveryExpress",label="has Express delivery?",
                             choices=c("Everything","yes","no"),selected="Everything")
         )
-),
+    ),
     textOutput("warning"),
     textOutput("warning2"),
     textOutput("count"),
@@ -145,7 +145,7 @@ server <- function(input, output) {
         
         
         
-        
+        isolate(withProgress(message="Searching ...",{
         ### some warnings in case the dates are miss set or not all objects will have been published over the date range
         if(as.character.Date(input$publishedDate) >  as.character.Date(as.character(input$rangeDates[2])))  {
             warningText <- "The published date is set after the end of the date range. Please change"
@@ -157,8 +157,8 @@ server <- function(input, output) {
         }
         output$warning <- renderText({warningText})
         
-         
-         ### for some inputs, create the SQL query part for each selection.
+        
+        ### for some inputs, create the SQL query part for each selection.
         ### For sale
         if(input$OnSale == "yes"){
             sale <- 'true'
@@ -216,7 +216,7 @@ server <- function(input, output) {
             }else{
                 deliver_express <- " IS NOT NULL" }
         }     
-         print("before query 1")
+        print("before query 1")
         ### To aviod promoting products where the partner is on vacation, only select those not.
         query_hols <- 'SELECT DISTINCT noths.dimension_partner_.original_id as partner_id
         FROM noths.facts_partner_holidays
@@ -300,7 +300,7 @@ server <- function(input, output) {
                                                group by product_code') )
             trans <- dbGetQuery(poolNames,query_trans)  
             print("after query 4")
-        
+            
             
             ### put the files together into one table. If there are any NAs, replace them with 0. 
             ### (i.e. if there are no page views or checkouts)
@@ -397,9 +397,10 @@ server <- function(input, output) {
             newtab2$impact <- 1:nrow(newtab2)
             newtab2
             
-     }else{
-        ### If there are no results from the search parameters, return a wanring to try different parameters 
-        stop("There are no results for this query. Please try different search parameters.")}
+        }else{
+            ### If there are no results from the search parameters, return a wanring to try different parameters 
+            stop("There are no results for this query. Please try different search parameters.")}
+        }))
     })  
     
     ### Outputs the 
