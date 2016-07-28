@@ -11,9 +11,8 @@ if(dir.exists('/config/conf.yml')){
 }else{
     location <-'conf.yml'
 }
-configFile <- yaml.load_file(location)
+ configFile <- yaml.load_file(location)
 ### create the pool of SQL connections so it works for multiple people at a time
-#poolNames <- dbPool(
 poolNames <- dbPool(
     drv = RPostgreSQL::PostgreSQL(),
     dbname = configFile$redshift$'db-name',
@@ -22,7 +21,6 @@ poolNames <- dbPool(
     password = configFile$redshift$password,
     port = configFile$redshift$port
 )
-
 
 ui <- fluidPage(
     titlePanel("Product Selection Tool"),
@@ -126,22 +124,22 @@ server <- function(input, output) {
     
     tab2 <- eventReactive(input$go, { 
         
-        if(dir.exists('/config/conf.yml')){
-            location <-'/config/conf.yml'
-        }else{
-            location <-'conf.yml'
-        }
-        configFile <- yaml.load_file(location)
-        ### create the pool of SQL connections so it works for multiple people at a time
-        #poolNames <- dbPool(
-        poolNames <- dbPool(
-            drv = RPostgreSQL::PostgreSQL(),
-            dbname = configFile$redshift$'db-name',
-            host = configFile$redshift$host,
-            user = configFile$redshift$user,
-            password = configFile$redshift$password,
-            port = configFile$redshift$port
-        )
+        # if(dir.exists('/config/conf.yml')){
+        #     location <-'/config/conf.yml'
+        # }else{
+        #     location <-'conf.yml'
+        # }
+        # configFile <- yaml.load_file(location)
+        # ### create the pool of SQL connections so it works for multiple people at a time
+        # #poolNames <- dbPool(
+        # poolNames <- dbPool(
+        #     drv = RPostgreSQL::PostgreSQL(),
+        #     dbname = configFile$redshift$'db-name',
+        #     host = configFile$redshift$host,
+        #     user = configFile$redshift$user,
+        #     password = configFile$redshift$password,
+        #     port = configFile$redshift$port
+        # )
         
         
         
@@ -325,12 +323,13 @@ server <- function(input, output) {
             ### Put the file together, select only the needed columns
             full_file2 <- cbind(full_file,conversion)
             toSelect <- c("product_name","product_code","partner_name","family","group","current_gross_price","gross_price_on_sale",
-                          "delivery_time","delivery_class","days_live","page_views","ttv","num_checkouts","conversion","url"  )
+                          "delivery_time","delivery_class","days_live","page_views","ttv","num_checkouts","conversion"  )
             small_file <-full_file2[,match(toSelect,names(full_file2))]
             
             ### get the images and make the first column
             img <- full_file[,which(names(full_file) =="image_url")]
-            image <- paste0("<img src=\"", img," \" height=\"150\"></img>")
+            productUrl <- full_file[,which(names(full_file) == "url")]
+            image <- paste0("<a href = \"", productUrl, "\"> <img src=\"", img,"\" height=\"150\"></a>")
             newtab <- data.frame(cbind(image,small_file))
             
             print("before query 5")
