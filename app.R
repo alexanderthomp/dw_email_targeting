@@ -5,7 +5,7 @@ library(RPostgreSQL)
 library(yaml)
 library(pool)
 
-
+### check for config file
 if(dir.exists('/config/conf.yml')){
     location <-'/config/conf.yml'
 }else{
