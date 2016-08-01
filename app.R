@@ -141,9 +141,21 @@ server <- function(input, output) {
       }else{sale <- "\'True\',\'FALSE\'"} }
       
       ### select from family
-      fam <- c("All","accessories","baby care","experiences","food & drink","gardens & outdoors",
-               "haberdashery","health & beauty","home","jewellery","pet accessories",
-               "prints, pictures & art","stationary & parties","toys, games & sport",
+      fam <- c("All",
+               "accessories",
+               "baby care",
+               "clothing",
+               "experiences",
+               "food & drink",
+               "garden & outdoors",
+               "haberdashery",
+               "health & beauty",
+               "home",
+               "jewellery",
+               "pet accessories",
+               "prints, pictures & art",
+               "stationery & parties",
+               "toys, games & sports",
                "unknown")
       if(input$InFamily == "All"){
         fam_key <- fam[-1]
@@ -212,7 +224,7 @@ server <- function(input, output) {
         }
         
       }else{
-        pubDate <- as.character(input$daterange[1])
+        pubDate <- input$daterange[1]
         viewDate1 <- input$daterange[1]
         viewDate2 <- input$daterange[2]
       }
@@ -254,17 +266,16 @@ server <- function(input, output) {
                                         current_date-date(published_date) as days_live
                                         from product 
                                         WHERE current_gross_price BETWEEN ', input$pricemin, ' AND ', input$pricemax, '
-                                        AND published_date > ' , as.character(pubDate), ' 
-                                        AND LOWER(product_name) LIKE (\'%', input$keyword ,'%\')
-                                        AND currently_on_sale IN (',sale,')
+                                        AND published_date >= date(\'' , as.character(pubDate), '\' 
+                                        ) AND LOWER(product_name) LIKE (\'%', input$keyword ,'%\')
+                                              AND currently_on_sale IN (',sale,')
                                         AND family IN (',fam_keyword,')
                                         AND \"group\" ', group_keyword,'
                                         AND number_of_options', personalised ,'
                                         AND delivery_class ', deliveryOption ,'
-                                        AND has_express_delivery ', deliver_express,'
-                                        and partner_id IN (', notonhols ,')'
+                                        AND has_express_delivery ', deliver_express
                                         ) )
-      
+      # and partner_id IN (', notonhols ,')'
       products <- dbGetQuery(poolNames,query_prod)    
       
       print("after query 2")
