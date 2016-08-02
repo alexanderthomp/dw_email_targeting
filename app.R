@@ -23,7 +23,7 @@ poolNames <- dbPool(
 )
 
 ui <- fluidPage(
-    ### titlePanel("Product Selection Tool"),
+    
     navbarPage("Production Selection Tool",
                tabPanel("Tool",
                         fluidRow(
@@ -73,14 +73,17 @@ ui <- fluidPage(
                                    ### radioButtons(inputId="layout",label="Layout",choices=c("grid of images","list"))
                             )
                         ),
-                        textOutput("warning"),
-                        textOutput("warning2"),
-                        dataTableOutput("tab1")
+                        #  ),
+                        #  tabPanel("FAQs", uiOutput('FAQs'))
+                        #  ),
+                        tabsetPanel(
+                            tabPanel("List View",dataTableOutput("tab1") ,value="list"),
+                            tabPanel("Image Grid",htmlOutput("gridimage") ,value="grid"))
                ),
-               tabPanel("FAQs", uiOutput('FAQs')))
-) 
-
-
+               tabPanel("FAQs", uiOutput('FAQs'))
+    )
+    
+)
 
 # generate list; ech element is a family and contains relevant groups
 # advantages: runs in seconds; always shows latest Re:dash content
@@ -94,7 +97,7 @@ fg <- lapply(fg, as.character)
 
 
 
-server <- function(input, output) { 
+server <- function(input, output,session) { 
     ### render the drop down boxes for group. theses react to the selection from family
     output$group1ui <- renderUI({
         switch(input$InFamily,
@@ -415,14 +418,14 @@ server <- function(input, output) {
                 img <- full_file2[,which(names(full_file2) =="image_url")]
                 productUrl <- full_file2[,which(names(full_file2) == "url")]
                 image <- paste0("<a href = \"", productUrl, "\" target=\"_blank\"> <img src=\"", img,"\" height=\"150\"></a>")
-                newtab <- data.frame(cbind(image, full_file2))
+                newtab <- data.frame(cbind(image, full_file2,img))
                 
                 toSelect <- c("impact", "image", "product_name","product_code","partner_name","family","group","current_availability", "current_stock_status", "partner_state", "current_gross_price","gross_price_on_sale",
-                              "delivery_time","delivery_class","page_views","ttv","num_checkouts","conversion")
+                              "delivery_time","delivery_class","page_views","ttv","num_checkouts","conversion","img","url")
                 outputTable <-newtab[,match(toSelect,names(newtab))]
                 
                 outputTableNames <- c("Relative Impact", "Image", "Product", "Product Code", "Partner","Family","Group","Availability", "Stock Status", "Partner State", "Price","Sale Price",
-                                      "Delivery Time","Delivery Class","Page Views","TTV","Checkouts","Conversion")
+                                      "Delivery Time","Delivery Class","Page Views","TTV","Checkouts","Conversion","img","url")
                 colnames(outputTable) <- outputTableNames
                 
                 outputTable
@@ -437,8 +440,19 @@ server <- function(input, output) {
     
     
     output$tab1 <- DT::renderDataTable({
-        tab2() 
+        tab2()[,-c(19:20)]
     },escape=FALSE, rownames = FALSE)
+    
+    output$gridimage <- renderUI({
+        for(i in 1:nrow(tab2())){
+            src= tab2()$img[i]
+            test[i] <- list(tags$a(href=tab2()$url[1], img(src=src),target="_blank"))
+        }
+        test
+    })
+    
+    
+    
     
     output$FAQs <- renderUI({
         HTML('<h1>Frequently asked questions and information about metrics </h1>
@@ -452,6 +466,11 @@ server <- function(input, output) {
              have selected in that time period and conversion summed over that same period. Only products 
              which are published before the start of this time period are included and returned. <br>
              The products are then ordered with this metric (the highest TTV*conversion is returned first).
+             </font></p>
+             
+             <h2> How do I get to the webpage? </h2>
+             <p><font size=4> Click on the image! It will open a new tab showing the website for that product.
+             This also works if the image link is broken (something we are working on still.)
              </font></p>
              
              
