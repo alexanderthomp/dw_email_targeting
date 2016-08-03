@@ -3,6 +3,7 @@ FROM ubuntu:14.04
 RUN mkdir app
 COPY app.R init.R $HOME/app/
 COPY initialise.R $HOME/
+COPY www/* $HOME/app/www/
 
 RUN sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list' &&\
     gpg --keyserver keyserver.ubuntu.com --recv-key E084DAB9 &&\

@@ -1,0 +1,223 @@
+@font-face {
+  font-family: 'NOTHS Sans No2 Regular';
+  src: url('http://cdn.notonthehighstreet.com/stylesheets/fonts/noths_sans_2_regular.eot?#iefixage') format('embedded-opentype'),
+  url('http://cdn.notonthehighstreet.com/stylesheets/fonts/noths_sans_2_regular.woff') format('woff'),
+  url('http://cdn.notonthehighstreet.com/stylesheets/fonts/noths_sans_2_regular.ttf')  format('truetype');
+}
+
+  @font-face {
+  font-family: 'NOTHS Sans No2 SemiBold';
+  src: url('http://cdn.notonthehighstreet.com/stylesheets/fonts/noths_sans_2_semibold.eot?#iefixage') format('embedded-opentype'),
+  url('http://cdn.notonthehighstreet.com/stylesheets/fonts/noths_sans_2_semibold.woff') format('woff'),
+  url('http://cdn.notonthehighstreet.com/stylesheets/fonts/noths_sans_2_semibold.ttf')  format('truetype');
+}
+
+  @font-face {
+  font-family: 'NOTHS Sans No3 Regular';
+  src: url('http://cdn.notonthehighstreet.com/stylesheets/fonts/noths_sans_3_regular.eot?#iefixage') format('embedded-opentype'),
+  url('http://cdn.notonthehighstreet.com/stylesheets/fonts/noths_sans_3_regular.woff') format('woff'),
+  url('http://cdn.notonthehighstreet.com/stylesheets/fonts/noths_sans_3_regular.ttf')  format('truetype');
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+}
+/*
+    Header
+*/
+
+
+.navbar-brand {
+	margin-left: -15px;
+	color: #777;
+	float: left;
+    height: 50px;
+    padding: 15px 15px;
+    font-size: 18px;
+    line-height: 20px;
+    text-transform: uppercase;
+    font-family: "NOTHS Sans No2 SemiBold","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+}
+
+
+.navbar-static-top {
+    background: #4CC4D2;
+    margin: 0;
+    padding: 10px;
+    box-shadow: 1px 1px 6px rgba(255,255,255,0.3);
+    color: #fff;
+    font-size: 22px;
+    border-bottom: 1px solid rgba(76, 196, 210,0.3);
+    position: relative;
+    text-transform: uppercase;
+    font-family: "NOTHS Sans No2 SemiBold","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+}
+.navbar-static-top::before{
+    background: url(http://www.notonthehighstreet.com/images/header/logos/tag_logo_uk@2x.png?dfb74fb) no-repeat;
+    display: inline-block;
+    text-indent: -9999px;
+    content: '';
+    background-size: 130%;
+    width: 80px;
+    height: 58px;
+    position: absolute;
+    right: 20px;
+    top: 8px;
+}
+.container-fluid {
+    padding: 0;
+}
+
+.navbar-nav{
+	border: 1px solid #056582;
+    background-color: #e7e7e7;
+    margin: 0px;
+    padding: 0px;
+    color: #fff;
+    font-size: 18px;
+    position: relative;
+    text-transform: uppercase;
+    font-family: "NOTHS Sans No2 SemiBold","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+}
+
+.navbar-nav li.active {
+	color:#fff;
+	backgroun-color: #eee;
+	}
+
+
+
+
+
+.nav-tabs{
+	text-transform: uppercase;
+    font-family: "NOTHS Sans No2 SemiBold","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+	display: inline-block;
+    max-width: 100%;
+    margin-bottom: 5px;
+    font-weight: 700;
+    
+}
+
+
+/*
+    Controls
+*/
+.row {
+    margin: 0;
+}
+div.row {
+    background: #eee;
+    padding: 20px;
+    box-shadow: 1px 1px 10px rgba(0,0,0,0.1);
+    position: relative;
+    border-bottom: 1px solid #ccc;
+}
+
+label {
+    text-transform: uppercase;
+    font-family: "NOTHS Sans No2 SemiBold","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+}
+.radio label {
+    font-family: "NOTHS Sans No3 Regular","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+    text-transform: none;
+    font-size: 13px;
+}
+.btn, .btn:hover {
+    border: 1px solid #056582;
+    box-shadow: inset 0 1px 0 #3ab4d9,0 1px 1px rgba(0,0,0,0.3);
+    background-color: #0a89af;
+    background-repeat: no-repeat;
+    color: #fff;
+    text-transform: uppercase;
+    font-family: "NOTHS Sans No2 SemiBold","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+}
+.irs-from, .irs-to, .irs-single {
+    background-color: #2CD3B7;
+}
+input[type=text], input[type=search]{
+    box-shadow: inset 0 1px 5px 0 rgba(0,0,0,0.24);
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    line-height: 39px;
+    padding: 0 10px;
+    width: 100%;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+input[type=search]{
+    width: auto;
+}
+/*
+    table
+*/
+#tab1 {
+    background: #e8eff1;
+}
+table.dataTable {
+    background: #fff;
+    margin: 0;
+}
+table.dataTable.no-footer {
+    border-bottom: 1px solid #aaa;
+    border-top: 1px solid #aaa;
+}
+th {
+    font-size: 12px;
+}
+#tab1 table.dataTable th {
+    border-bottom: 1px solid #aaa;
+    text-transform: uppercase;
+    font-family: "NOTHS Sans No2 SemiBold","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+}
+.datatables table.dataTable tbody td {
+    font-family: "NOTHS Sans No3 Regular","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+    font-size: 13px;
+}
+
+#tab1 table.dataTable th,
+#tab1 table.dataTable td{
+    text-align: left;
+    padding: 10px 10px;
+    padding-right: 20px;
+    border-right: 1px solid #f5f5f5;
+
+}
+/* ID */
+table.dataTable tbody td:nth-child(1), table.dataTable tbody th:nth-child(1) {
+    max-width: 10px;
+    padding: 0;
+    font-family: "NOTHS Sans No2 SemiBold","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+    text-align: center;
+}
+/* Image */
+td:nth-child(2), th:nth-child(2) {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+img {
+    box-shadow: 3px 3px 0 #d6d2ce;
+    -webkit-box-shadow: 3px 3px 0 #d6d2ce;
+}
+/* Title */
+td:nth-child(3), th:nth-child(3) {
+    max-width: 200px;
+}
+td:nth-child(3){
+    font-family: "NOTHS Sans No2 Regular","Helvetica Neue","HelveticaNeue",Arial,sans-serif;
+    color: #056582;
+}
+
+
+.dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter {
+    margin: 20px 20px 10px;
+}
+.dataTables_wrapper .dataTables_length {
+    margin-top: 30px;
+}
+.dataTables_info {
+    padding: 10px;
+}

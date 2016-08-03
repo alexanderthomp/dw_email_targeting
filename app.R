@@ -23,7 +23,7 @@ poolNames <- dbPool(
 )
 
 ui <- fluidPage(
-    
+    includeCSS("www/PhuStyle.css"),
     navbarPage("Production Selection Tool",
                tabPanel("Tool",
                         fluidRow(
@@ -81,6 +81,7 @@ ui <- fluidPage(
                             tabPanel("Image Grid",htmlOutput("gridimage") ,value="grid"))
                ),
                tabPanel("FAQs", uiOutput('FAQs'))
+               
     )
     
 )
@@ -277,19 +278,19 @@ server <- function(input, output,session) {
             ### product sales timeframe stuff
             if(input$date == "recently published"){
                 if(input$publishedDate == "last week"){
-                    pubDate <- Sys.Date() - 7
-                    viewDate1 <- Sys.Date() - 7
-                    viewDate2 <- Sys.Date()
+                    pubDate <- Sys.Date() - 8
+                    viewDate1 <- Sys.Date() - 8
+                    viewDate2 <- Sys.Date() -1
                 }else{
                     if(input$publishedDate == "last 2 weeks"){
-                        pubDate <- Sys.Date() - 14
-                        viewDate1 <- Sys.Date() - 14
-                        viewDate2 <- Sys.Date()
+                        pubDate <- Sys.Date() - 15
+                        viewDate1 <- Sys.Date() - 15
+                        viewDate2 <- Sys.Date() -1
                         
                     }else{ 
-                        pubDate <- Sys.Date() - 28
-                        viewDate1 <- Sys.Date() - 28
-                        viewDate2 <- Sys.Date()
+                        pubDate <- Sys.Date() - 29
+                        viewDate1 <- Sys.Date() - 29
+                        viewDate2 <- Sys.Date() - 1
                     }
                     
                 }
@@ -337,7 +338,8 @@ server <- function(input, output,session) {
                                               current_date-date(published_date) as days_live
                                               from product 
                                               WHERE current_gross_price BETWEEN ', input$pricemin, ' AND ', input$pricemax, '
-                                              AND published_date >= date(\'' , as.character(pubDate), '\' 
+                                              AND published_date BETWEEN date(\'', as.character(pubDate),  '\') 
+                                              AND date(\'',as.character(viewDate2), '\'
                                               ) AND LOWER(product_name) LIKE (\'%', input$keyword ,'%\')
                                               AND currently_on_sale IN (',sale,')
                                               AND family IN (',fam_keyword,')
@@ -415,10 +417,11 @@ server <- function(input, output,session) {
                 full_file2$impact <- 1:nrow(full_file2)
                 
                 ### get the images and make the first column
+                url <- full_file2[,which(names(full_file2) =="url")]
                 img <- full_file2[,which(names(full_file2) =="image_url")]
                 productUrl <- full_file2[,which(names(full_file2) == "url")]
                 image <- paste0("<a href = \"", productUrl, "\" target=\"_blank\"> <img src=\"", img,"\" height=\"150\"></a>")
-                newtab <- data.frame(cbind(image, full_file2,img))
+                newtab <- data.frame(cbind(image, full_file2,img,url))
                 
                 toSelect <- c("impact", "image", "product_name","product_code","partner_name","family","group","current_availability", "current_stock_status", "partner_state", "current_gross_price","gross_price_on_sale",
                               "delivery_time","delivery_class","page_views","ttv","num_checkouts","conversion","img","url")
@@ -451,6 +454,9 @@ server <- function(input, output,session) {
         }
         images
     })
+    
+    
+    
     
     output$FAQs <- renderUI({
         HTML('<h1>Frequently asked questions and information about metrics </h1>
