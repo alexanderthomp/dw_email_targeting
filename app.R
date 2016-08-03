@@ -69,8 +69,9 @@ ui <- fluidPage(
                                                 choices=c("Everything","yes","no"),selected="Everything"),
                                    
                                    radioButtons(inputId="personalise",label="Can it be personalised?",
-                                                choices=c("don\'t care","yes","no"), selected="don\'t care")
-                                   ### radioButtons(inputId="layout",label="Layout",choices=c("grid of images","list"))
+                                                choices=c("don\'t care","yes","no"), selected="don\'t care"),
+                                   downloadButton('downloadAllData', 'Download full search'),
+                                   downloadButton('downloadData', 'Download your Selections')
                             )
                         ),
                         #  ),
@@ -444,7 +445,9 @@ server <- function(input, output,session) {
     
     output$tab1 <- DT::renderDataTable({
         tab2()[,-c(19:20)]
-    },escape=FALSE, rownames = FALSE)
+    },escape=FALSE, rownames = FALSE,server=TRUE,
+    options=list(pageLength=50, searchHighlight = TRUE)
+    )
     
     output$gridimage <- renderUI({
         images <- list()
@@ -455,7 +458,24 @@ server <- function(input, output,session) {
         images
     })
     
+    output$downloadAllData <- downloadHandler(
+        filename = function() { paste("FullSearchResults_",Sys.Date(), '.csv', sep='') },
+        content = function(file) {
+            write.csv(tab2(), file,row.names = FALSE)
+            
+        }
+    )
     
+    
+    
+    output$downloadData <- downloadHandler( 
+        filename = function() { paste("Selection_",Sys.Date(), '.csv', sep='') },
+        content = function(file) {
+            rows <- as.numeric(input$tab1_rows_selected)
+            toRemove <- "Image"                  
+            write.csv(tab2()[rows,-match(toRemove, colnames(tab2()))], file,row.names = FALSE)
+        } 
+    ) 
     
     
     output$FAQs <- renderUI({
