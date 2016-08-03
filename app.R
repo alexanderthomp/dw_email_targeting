@@ -444,15 +444,13 @@ server <- function(input, output,session) {
     },escape=FALSE, rownames = FALSE)
     
     output$gridimage <- renderUI({
+        images <- list()
         for(i in 1:nrow(tab2())){
             src= tab2()$img[i]
-            test[i] <- list(tags$a(href=tab2()$url[1], img(src=src),target="_blank"))
+            images[i] <- list(tags$a(href=tab2()$url[i], img(src=src),target="_blank"))
         }
-        test
+        images
     })
-    
-    
-    
     
     output$FAQs <- renderUI({
         HTML('<h1>Frequently asked questions and information about metrics </h1>
