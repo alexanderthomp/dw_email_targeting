@@ -357,8 +357,9 @@ server <- function(input, output,session) {
                                               AND lower(product_name) not like \'%replacement%\'
                                               '
                                               ) )
-            # and partner_id IN (', notonhols ,')'
             products <- dbGetQuery(poolNames,query_prod)    
+            
+            
             
             print("after query 2")
             
@@ -452,7 +453,7 @@ server <- function(input, output,session) {
     
     
     output$tab1 <- DT::renderDataTable({
-        tab2()[,-c(19:20)]
+        tab2()
     },escape=FALSE, rownames = FALSE,server=TRUE,
     options=list(pageLength=50, searchHighlight = TRUE)
     )
