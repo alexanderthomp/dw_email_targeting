@@ -348,7 +348,14 @@ server <- function(input, output,session) {
                                               AND \"group\" ', group_keyword,'
                                               AND number_of_options', personalised ,'
                                               AND delivery_class ', deliveryOption ,'
-                                              AND has_express_delivery ', deliver_express
+                                              AND has_express_delivery ', deliver_express, '
+                                              AND lower(product_name) not like \'%bespoke%\' 
+                                              AND lower(product_name) not like \'%upgrade%\'  
+                                              AND lower(product_name) not like \'%special%\' 
+                                              AND lower(product_name) not like \'%additional%\' 
+                                              AND lower(product_name) not like \'%custom%\' 
+                                              AND lower(product_name) not like \'%replacement%\'
+                                              '
                                               ) )
             products <- dbGetQuery(poolNames,query_prod)    
             
