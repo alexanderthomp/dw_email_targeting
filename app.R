@@ -475,8 +475,6 @@ server <- function(input, output,session) {
         }
     )
     
-    
-    
     output$downloadData <- downloadHandler( 
         filename = function() { paste("Selection_",Sys.Date(), '.csv', sep='') },
         content = function(file) {
@@ -485,7 +483,6 @@ server <- function(input, output,session) {
             write.csv(tab2()[rows,-match(toRemove, colnames(tab2()))], file,row.names = FALSE)
         } 
     ) 
-    
     
     output$FAQs <- renderUI({
         HTML('<h1>Frequently asked questions and information about metrics </h1>
@@ -523,9 +520,22 @@ server <- function(input, output,session) {
              </font></p>
              
              <h2> How do I reset the search? </h2>
-             <p><font size=4> The current best page is to refresh the page.
+             <p><font size=4> The current best way is to refresh the page.
              </font></p>
              
+             <h2> How do I download my data? <h2>
+             <p><font size=4> There are two ways. If you want to download all of the search, click the \"DOWNLOAD FULL SEARCH\". This 
+                 will download a csv file to your downloads which can be opened with excel. It will contain the current date. (If you 
+                 save more than one seach, they will also be number 1,2,3 etc.) <br>
+                To download a selection of items, select the rows you want. To unselect just click on the row again. Then click on the 
+                \"DOWNLOAD YOUR SELECTIONS\" button. Again it downloads a csv. 
+             </font></p>
+
+
+            <h2> What has data has been removed form the search? </h2>
+            <p><font size=4> We have removed any items containing custom and bospoke in the title. 
+
+            </font></p>
              
              ')
         
