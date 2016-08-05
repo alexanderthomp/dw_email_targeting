@@ -453,7 +453,7 @@ server <- function(input, output,session) {
     
     
     output$tab1 <- DT::renderDataTable({
-        tab2()
+        tab2()[,-c(19,20)]
     },escape=FALSE, rownames = FALSE,server=TRUE,
     options=list(pageLength=50, searchHighlight = TRUE)
     )
