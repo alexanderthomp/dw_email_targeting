@@ -4,6 +4,7 @@ RUN mkdir app
 COPY app.R init.R $HOME/app/
 COPY initialise.R $HOME/
 COPY www/* $HOME/app/www/
+COPY google-analytics.js $HOME/app/
 
 RUN sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list' &&\
     gpg --keyserver keyserver.ubuntu.com --recv-key E084DAB9 &&\
