@@ -23,7 +23,7 @@ poolNames <- dbPool(
 )
 
 ui <- fluidPage(
-    tags$head(includeScript("google-analytics.js")),
+
     includeCSS("www/PhuStyle.css"),
     navbarPage("Production Selection Tool",
                tabPanel("Tool",
