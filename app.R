@@ -131,7 +131,7 @@ server <- function(input, output,session) {
                "accessories" = selectInput("group2","Group 2",choices =c(unlist(fg["accessories"],use.names=F )),selected="All",multiple=TRUE),
                "baby care" = selectInput("group2","Group 2",choices =c(unlist(fg["baby care"],use.names=F )),
                                          selected="All",multiple=TRUE),
-               "clothing" = selectInput("group2","Group 2",choices=c(unlist(fg["clothing"],use.names=F )),selected="All",multiple=TRUE),
+               "fg" = selectInput("group2","Group 2",choices=c(unlist(fg["clothing"],use.names=F )),selected="All",multiple=TRUE),
                "experiences" = selectInput("group2","Group 2",choices =c("experiences"),selected="experiences"),
                "food & drink" = selectInput("group2","Group 2",choices =c(unlist(fg["food & drink"],use.names=F )),selected="All",multiple=TRUE),
                "garden & outdoors" = selectInput("group2","Group 2",choices =c(unlist(fg["garden & outdoors"],use.names=F )),selected="All",multiple=TRUE),
@@ -150,20 +150,20 @@ server <- function(input, output,session) {
     output$group3ui <- renderUI({
         switch(input$InFamily3,
                "All" = selectInput("group3","Group 3",choices=c("All"),selected="All"),
-               "accessories" = selectInput("group3","Group 3",choices =c(unlist(fg["accessories"],use.names=F)),selected="All"),
-               "baby care" = selectInput("group3","Group 3",choices =c(unlist(fg["baby care"],use.names=F )),selected="All"),
-               "clothing" = selectInput("group3","Group 3",choices=c(unlist(fg["clothing"],use.names=F )),selected="All"),
+               "accessories" = selectInput("group3","Group 3",choices =c(unlist(fg["accessories"],use.names=F)),selected="All",multiple=TRUE),
+               "baby care" = selectInput("group3","Group 3",choices =c(unlist(fg["baby care"],use.names=F )),selected="All",multiple=TRUE),
+               "clothing" = selectInput("group3","Group 3",choices=c(unlist(fg["clothing"],use.names=F )),selected="All",multiple=TRUE),
                "experiences" = selectInput("group3","Group 3",choices =c("experiences"),selected="experiences"),
-               "food & drink" = selectInput("group3","Group 3",choices =c(unlist(fg["food & drink"],use.names=F )),selected="All"),
-               "garden & outdoors" = selectInput("group3","Group 3",choices =c(unlist(fg["garden & outdoors"],use.names=F )),selected="All"),
-               "haberdashery" = selectInput("group3","Group 3",choices =c(unlist(fg["haberdashery"],use.names=F )),selected="All"),
-               "health & beauty" = selectInput("group3","Group 3",choices =c(unlist(fg["health & beauty"],use.names=F )),selected="All"),
-               "home" = selectInput("group3","Group 3",choices =c(unlist(fg["home"],use.names=F )),selected="All"),
-               "jewellery" = selectInput("group3","Group 3",choices =c(unlist(fg["jewellery"],use.names=F )),selected="All"),
-               "pet accessories" = selectInput("group3","Group 3",choices =c(unlist(fg["pet accessories"],use.names=F )),selected="All"),
-               "prints, pictures & art" = selectInput("group3","Group 3",choices =c(unlist(fg["prints, pictures & art"],use.names=F )),selected="All"),
-               "stationery & parties" = selectInput("group3","Group 3",choices =c(unlist(fg["stationery & parties"],use.names=F )),selected="All"),
-               "toys, games & sports" = selectInput("group3","Group 3",choices =c(unlist(fg["toys, games & sports"],use.names=F )),selected="All"),
+               "food & drink" = selectInput("group3","Group 3",choices =c(unlist(fg["food & drink"],use.names=F )),selected="All",multiple=TRUE),
+               "garden & outdoors" = selectInput("group3","Group 3",choices =c(unlist(fg["garden & outdoors"],use.names=F )),selected="All",multiple=TRUE),
+               "haberdashery" = selectInput("group3","Group 3",choices =c(unlist(fg["haberdashery"],use.names=F )),selected="All",multiple=TRUE),
+               "health & beauty" = selectInput("group3","Group 3",choices =c(unlist(fg["health & beauty"],use.names=F )),selected="All",multiple=TRUE),
+               "home" = selectInput("group3","Group 3",choices =c(unlist(fg["home"],use.names=F )),selected="All",multiple=TRUE),
+               "jewellery" = selectInput("group3","Group 3",choices =c(unlist(fg["jewellery"],use.names=F )),selected="All",multiple=TRUE),
+               "pet accessories" = selectInput("group3","Group 3",choices =c(unlist(fg["pet accessories"],use.names=F )),selected="All",multiple=TRUE),
+               "prints, pictures & art" = selectInput("group3","Group 3",choices =c(unlist(fg["prints, pictures & art"],use.names=F )),selected="All",multiple=TRUE),
+               "stationery & parties" = selectInput("group3","Group 3",choices =c(unlist(fg["stationery & parties"],use.names=F )),selected="All",multiple=TRUE),
+               "toys, games & sports" = selectInput("group3","Group 3",choices =c(unlist(fg["toys, games & sports"],use.names=F )),selected="All",multiple=TRUE),
                "unknown" = selectInput("group3","Group 3",choices =c("unknown"),selected="unknown")
         )
     })
@@ -195,52 +195,64 @@ server <- function(input, output,session) {
                     group_keyword <- "IS NOT NULL"
                     
                 }else{
-                    fam_keyword <- paste0('\'',family,'\'')
-                    if(sum(grep("All",input$group)==1 ) ==1){
-                        group_keyword <- "IS NOT NULL"
+                    fam_keyword <- paste0('\'',input$InFamily,'\'')
+                    if(("All" %in% input$group)== TRUE & length(input$group) == 1){
+                        groups <- unlist(fg[input$InFamily],use.names=F )[-grep("All", unlist(fg[input$InFamily],use.names=F))]
+                        group_keyword <- paste0('IN (', paste0('\'', groups, '\'', collapse = ","), ')') 
                     }else{
-                        group_keyword <- paste0('IN (', paste0('\'', input$group, '\'', collapse = ","), ')') 
+                        group1 <- input$group[!grepl("All",input$group)]
+                        group_keyword <- paste0('IN (', paste0('\'', group1, '\'', collapse = ","), ')') 
                     }
-                    
                 }
             }else{
                 if(input$InFamily2 !="No second family" && input$InFamily3 =="No third family"){
                     fam_keyword <- paste0('\'',input$InFamily,'\' , \'',input$InFamily2,'\'')
                     
-                    if(sum(grep("All",input$group)==1 ) ==1){
-                        group_key1 <- unlist(fg[input$InFamily],use.names=F )[-grep("All", unlist(fg[input$InFamily],use.names=F))]
+                    if(("All" %in% input$group)== TRUE & length(input$group) == 1){
+                        group1 <- unlist(fg[input$InFamily],use.names=F )[-grep("All", unlist(fg[input$InFamily],use.names=F))]
+                        group_key1 <- paste0('\'', group1, '\'', collapse = ",")
                     }else{
-                        group_key1 <- input$group
+                        group1 <- input$group[!grepl("All",input$group)]
+                        group_key1 <- paste0('\'', group1, '\'', collapse = ",")
                     }
-                    if(sum(grep("All",input$group2)==1 ) ==1){
-                        group_key2 <- unlist(fg[input$InFamily2],use.names=F )[-grep("All", unlist(fg[input$InFamily2],use.names=F))]
+                    if(("All" %in% input$group2)== TRUE & length(input$group2) == 1){
+                        group2 <- unlist(fg[input$InFamily2],use.names=F )[-grep("All", unlist(fg[input$InFamily2],use.names=F))]
+                        group_key2 <- paste0('\'', group2, '\'', collapse = ",") 
                     }else{
-                        group_key2 <- input$group2
+                        group2 <- input$group2[!grepl("All",input$group2)]
+                        group_key2 <- paste0('\'', group2, '\'', collapse = ",")
                     }
                     all_groups <- union(group_key1,group_key2)
-                    group_keyword <- paste0("IN (", paste0("\'",all_groups,"\'", collapse=','), ")" )  
+                    group_keyword <- paste0("IN (", paste0(all_groups, collapse=','), ")" )  
                     
                 }else{
                     if(input$InFamily2 !="No second family" && input$InFamily3 !="No third family"){
                         fam_keyword <- paste0('\'',input$InFamily,'\' , \'',input$InFamily2,'\' , \'',input$InFamily3,'\'')
-                        if(sum(grep("All",input$group)==1 ) ==1){
-                            group_key1 <- unlist(fg[input$InFamily],use.names=F )[-grep("All", unlist(fg[input$InFamily],use.names=F))]
+                        
+                        if(("All" %in% input$group)== TRUE & length(input$group) == 1){
+                            group1 <- unlist(fg[input$InFamily],use.names=F )[-grep("All", unlist(fg[input$InFamily],use.names=F))]
+                            group_key1 <- paste0('\'', group1, '\'', collapse = ",")
                         }else{
-                            group_key1 <- input$group
+                            group <- input$group[!grepl("All",input$group)]
+                            group_key1 <- paste0('\'', group, '\'', collapse = ",")
                         }
-                        if(sum(grep("All",input$group2)==1 ) ==1){
-                            group_key2 <- unlist(fg[input$InFamily2],use.names=F )[-grep("All", unlist(fg[input$InFamily2],use.names=F))]
+                        if(("All" %in% input$group2)== TRUE & length(input$group2) == 1){
+                            group2 <- unlist(fg[input$InFamily2],use.names=F )[-grep("All", unlist(fg[input$InFamily2],use.names=F))]
+                            group_key2 <- paste0('\'', group2, '\'', collapse = ",")
                         }else{
-                            group_key2 <- input$group2
+                            group2 <- input$group2[!grepl("All",input$group2)]
+                            group_key2 <- paste0('\'', group2, '\'', collapse = ",")
                         }
-                        if(sum(grep("All",input$group3)==1 ) ){
-                            group_key3 <- unlist(fg[input$InFamily3],use.names=F )[-grep("All", unlist(fg[input$InFamily3],use.names=F))]
+                        if(("All" %in% input$group3)== TRUE & length(input$group3) == 1){
+                            group3 <- unlist(fg[input$InFamily3],use.names=F )[-grep("All", unlist(fg[input$InFamily3],use.names=F))]
+                            group_key3 <- paste0('\'', group3, '\'', collapse = ",")
                         }else{
-                            group_key3 <- input$group3
+                            group3 <- input$group3[!grepl("All",input$group3)]
+                            group_key3 <- paste0('\'', group3, '\'', collapse = ",")
                         }
                         all_groups <- Reduce(union, list(group_key1,group_key2,group_key3))
                         
-                        group_keyword <- paste0("IN (", paste0("\'",all_groups,"\'", collapse=','), ")" )  
+                        group_keyword <- paste0("IN (", paste0(all_groups, collapse=','), ")" )  
                     }
                 }
             }
@@ -515,8 +527,7 @@ server <- function(input, output,session) {
              To selected groups, click on the family. For the first family selected the group box is visible. <br>
              For the second and third families this will cause the creation of the group drop down boxes. You can then 
              select multiple groups. <br>
-             <b>NOTE: You must remove "All". </b>Click on it and hit delete on the keyboard. 
-             Otherwise the search will still return all groups.
+
              </font></p>
              
              <h2> How do I reset the search? </h2>
@@ -525,17 +536,17 @@ server <- function(input, output,session) {
              
              <h2> How do I download my data? <h2>
              <p><font size=4> There are two ways. If you want to download all of the search, click the \"DOWNLOAD FULL SEARCH\". This 
-                 will download a csv file to your downloads which can be opened with excel. It will contain the current date. (If you 
-                 save more than one seach, they will also be number 1,2,3 etc.) <br>
-                To download a selection of items, select the rows you want. To unselect just click on the row again. Then click on the 
-                \"DOWNLOAD YOUR SELECTIONS\" button. Again it downloads a csv. 
+             will download a csv file to your downloads which can be opened with excel. It will contain the current date. (If you 
+             save more than one seach, they will also be number 1,2,3 etc.) <br>
+             To download a selection of items, select the rows you want. To unselect just click on the row again. Then click on the 
+             \"DOWNLOAD YOUR SELECTIONS\" button. Again it downloads a csv. 
              </font></p>
-
-
-            <h2> What has data has been removed form the search? </h2>
-            <p><font size=4> We have removed any items containing custom and bospoke in the title. 
-
-            </font></p>
+             
+             
+             <h2> What has data has been removed form the search? </h2>
+             <p><font size=4> We have removed any items containing custom and bospoke in the title. 
+             
+             </font></p>
              
              ')
         

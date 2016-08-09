@@ -86,9 +86,12 @@ body, html {
 	backgroun-color: #eee;
 	}
 
+.shiny-html-output {
+	margin-left: 30px;
+	margin-right: 30px;
+	margin-bottom: 30px;
 
-
-
+}
 
 .nav-tabs{
 	text-transform: uppercase;
@@ -211,6 +214,13 @@ td:nth-child(3){
     color: #056582;
 }
 
+
+..shiny-progress-container {
+  top: 50% !important;
+  left: 50% !important;
+  margin-top: -100px !important;
+  margin-left: -250px !important;
+}
 
 .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter {
     margin: 20px 20px 10px;
