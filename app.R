@@ -427,6 +427,17 @@ server <- function(input, output,session) {
                 ### Put the file together, select only the needed columns
                 full_file2 <- cbind(full_file,conversion)
                 
+                invalid <- which(full_file2$conversion > 0.15 & full_file2$num_checkouts == 1)
+                full_fileInvalid <- full_file2[invalid, ]
+                full_fileValid <- full_file2[-invalid, ]
+                meanConversionByFamily <- sapply(split(full_fileValid, full_fileValid$family), function(x) mean(x$conversion))
+                
+                for (i in unique(full_fileValid$family)){
+                  full_fileInvalid[full_fileInvalid$family == i, "conversion"] <- meanConversionByFamily[i]
+                }
+                
+                full_file2 <- rbind(full_fileValid, full_fileInvalid)
+                
                 if(input$date == "recently published"){
                     ttv_per_day <- full_file2$ttv / full_file2$days_live
                 }else{
