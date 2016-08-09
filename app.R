@@ -415,13 +415,13 @@ server <- function(input, output,session) {
                     full_file <- cbind(part_file,ttv,num_checkouts)
                 }else{
                     full_file <- data.frame(part_file, trans[match(part_file$product_code,trans$product_code),-1])
-                    full_file$ttv <- replace(full_file$ttv,is.na(full_file$ttv),0)
+                    full_file$ttv <- round(replace(full_file$ttv,is.na(full_file$ttv),0),2)
                     full_file$num_checkouts <- replace(full_file$num_checkout,is.na(full_file$num_checkout),0)
                     
                 }
                 
                 ### Add in conversion 
-                conversion <- ifelse(full_file$page_views < full_file$num_checkouts, 0, full_file$num_checkouts / full_file$page_views)
+                conversion <- ifelse(full_file$page_views < full_file$num_checkouts, 0, round(full_file$num_checkouts / full_file$page_views,2))
                 conversion <- round(replace(conversion,is.na(conversion),0),2)
                 
                 ### Put the file together, select only the needed columns
@@ -433,7 +433,7 @@ server <- function(input, output,session) {
                 meanConversionByFamily <- sapply(split(full_fileValid, full_fileValid$family), function(x) mean(x$conversion))
                 
                 for (i in unique(full_fileValid$family)){
-                  full_fileInvalid[full_fileInvalid$family == i, "conversion"] <- meanConversionByFamily[i]
+                  full_fileInvalid[full_fileInvalid$family == i, "conversion"] <- round(meanConversionByFamily[i],2)
                 }
                 
                 full_file2 <- rbind(full_fileValid, full_fileInvalid)
@@ -445,8 +445,8 @@ server <- function(input, output,session) {
                 }
                 ttv_per_dayNorm <- (ttv_per_day - min(ttv_per_day)) / diff(range(ttv_per_day))
                 conversionNorm <- (full_file2$conversion - min(full_file2$conversion)) / diff(range(full_file2$conversion))
-                full_file2$impact <- conversionNorm*ttv_per_dayNorm
-                full_file2 <- full_file2[order(-full_file2$impact),]
+                full_file2$impact <- conversionNorm*ttv_per_dayNorm 
+                full_file2 <- full_file2[order(-full_file2$impact),] 
                 full_file2$impact <- 1:nrow(full_file2)
                 
                 ### get the images and make the first column
