@@ -55,7 +55,7 @@ ui <- fluidPage(
                                    textInput(inputId="pricemax", label="maximum price",value=30),
                                    textInput(inputId = "keyword", label="search for title keyword",value=""),
                                    selectInput(inputId="OnSale",label = "include on sale products?",
-                                               choices = c("doesn\'t matter","Yes","no"),selected = "doesn\'t matter")
+                                               choices = c("doesn\'t matter","yes","no"),selected = "doesn\'t matter")
                                    
                             ), 
                             column(3,
@@ -171,7 +171,7 @@ server <- function(input, output,session) {
     output$dateui <- renderUI({
         switch(input$date,
                "recently published" = radioButtons(inputId="publishedDate",label="time frame date options",choices=c("last week","last 2 weeks","last month")),
-               "sales between dates" = dateRangeInput(inputId = "daterange", label = "sales window",start=Sys.Date()-14, end=Sys.Date(),min='2014-06-01',max=Sys.Date()-1)
+               "sales between dates" = dateRangeInput(inputId = "daterange", label = "sales window",start=Sys.Date()-15, end=Sys.Date()-1,min='2014-06-01',max=Sys.Date()-1)
         )
     })
     
@@ -183,10 +183,10 @@ server <- function(input, output,session) {
             ### for some inputs, create the SQL query part for each selection.
             ### For sale
             if(input$OnSale == "yes"){
-                sale <- 'true'
+                sale <- "\'true\' "
             }else{if(input$OnSale == "no"){
-                sale <- 'false'
-            }else{sale <- "\'True\',\'FALSE\'"} }
+                sale <- "\'false\' "
+            }else{sale <- "\'true\',\'false\'"} }
             
             ### select from family
             if(input$InFamily2 =="No second family" && input$InFamily3 =="No third family") {
@@ -369,6 +369,8 @@ server <- function(input, output,session) {
                                               AND lower(product_name) not like \'%replacement%\'
                                               '
                                               ) )
+            
+         print(query_prod)
             products <- dbGetQuery(poolNames,query_prod)    
             
             
@@ -428,15 +430,19 @@ server <- function(input, output,session) {
                 full_file2 <- cbind(full_file,conversion)
                 
                 invalid <- which(full_file2$conversion > 0.15 & full_file2$num_checkouts == 1)
-                full_fileInvalid <- full_file2[invalid, ]
-                full_fileValid <- full_file2[-invalid, ]
-                meanConversionByFamily <- sapply(split(full_fileValid, full_fileValid$family), function(x) mean(x$conversion))
-                
-                for (i in unique(full_fileValid$family)){
-                  full_fileInvalid[full_fileInvalid$family == i, "conversion"] <- round(meanConversionByFamily[i],2)
+                if(length(invalid) == 0){
+                    full_file2 <- full_file2
+                }else{
+                    full_fileInvalid <- full_file2[invalid, ]
+                    full_fileValid <- full_file2[-invalid, ]
+                    meanConversionByFamily <- sapply(split(full_fileValid, full_fileValid$family), function(x) mean(x$conversion))
+                    
+                    for (i in unique(full_fileValid$family)){
+                        full_fileInvalid[full_fileInvalid$family == i, "conversion"] <- round(meanConversionByFamily[i],2)
+                    }
+                    full_file2 <- rbind(full_fileValid, full_fileInvalid)
                 }
                 
-                full_file2 <- rbind(full_fileValid, full_fileInvalid)
                 
                 if(input$date == "recently published"){
                     ttv_per_day <- full_file2$ttv / full_file2$days_live
