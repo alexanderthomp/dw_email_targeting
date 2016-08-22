@@ -6,23 +6,22 @@ library(yaml)
 library(pool)
 
 ### check for config file
-# if(dir.exists('/config/conf.yml')){
-#     location <-'/config/conf.yml'
-# }else{
-#     location <-'conf.yml'
-# }
-# configFile <- yaml.load_file(location)
-# ### create the pool of SQL connections so it works for multiple people at a time
-# poolNames <- dbPool(
-#     drv = RPostgreSQL::PostgreSQL(),
-#     dbname = configFile$redshift$'db-name',
-#     host = configFile$redshift$host,
-#     user = configFile$redshift$user,
-#     password = configFile$redshift$password,
-#     port = configFile$redshift$port
-# )
-poolNames <- dbConnect(PostgreSQL(), user='kathryn', password='KATE@data.science.2ndfloor', 
-                       dbname='datawarehouse', host='10.1.4.248',port=5439)
+if(dir.exists('/config/conf.yml')){
+    location <-'/config/conf.yml'
+}else{
+    location <-'conf.yml'
+}
+configFile <- yaml.load_file(location)
+### create the pool of SQL connections so it works for multiple people at a time
+poolNames <- dbPool(
+    drv = RPostgreSQL::PostgreSQL(),
+    dbname = configFile$redshift$'db-name',
+    host = configFile$redshift$host,
+    user = configFile$redshift$user,
+    password = configFile$redshift$password,
+    port = configFile$redshift$port
+)
+
 ui <- fluidPage(
     tags$head(includeScript("google-analytics.js")),
     includeCSS("www/PhuStyle.css"),
