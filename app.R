@@ -6,22 +6,23 @@ library(yaml)
 library(pool)
 
 ### check for config file
-if(dir.exists('/config/conf.yml')){
-    location <-'/config/conf.yml'
-}else{
-    location <-'conf.yml'
-}
-configFile <- yaml.load_file(location)
-### create the pool of SQL connections so it works for multiple people at a time
-poolNames <- dbPool(
-    drv = RPostgreSQL::PostgreSQL(),
-    dbname = configFile$redshift$'db-name',
-    host = configFile$redshift$host,
-    user = configFile$redshift$user,
-    password = configFile$redshift$password,
-    port = configFile$redshift$port
-)
-
+# if(dir.exists('/config/conf.yml')){
+#     location <-'/config/conf.yml'
+# }else{
+#     location <-'conf.yml'
+# }
+# configFile <- yaml.load_file(location)
+# ### create the pool of SQL connections so it works for multiple people at a time
+# poolNames <- dbPool(
+#     drv = RPostgreSQL::PostgreSQL(),
+#     dbname = configFile$redshift$'db-name',
+#     host = configFile$redshift$host,
+#     user = configFile$redshift$user,
+#     password = configFile$redshift$password,
+#     port = configFile$redshift$port
+# )
+poolNames <- dbConnect(PostgreSQL(), user='kathryn', password='KATE@data.science.2ndfloor', 
+                       dbname='datawarehouse', host='10.1.4.248',port=5439)
 ui <- fluidPage(
     tags$head(includeScript("google-analytics.js")),
     includeCSS("www/PhuStyle.css"),
@@ -100,7 +101,10 @@ fg <- rbind(fg, toAdd); fg <- fg[order(fg$family, fg$group), ]
 fg <- split(fg$group, fg$family)
 fg <- lapply(fg, as.character)
 
-
+querytype <- 'SELECT distinct type from product where family IN (\'jewellery\')' 
+Jtype <- dbGetQuery(poolNames,querytype)
+Jtype <- c('All',Jtype$type)
+fg$jewellery <- Jtype
 
 server <- function(input, output,session) { 
     ### render the drop down boxes for group. theses react to the selection from family
@@ -133,7 +137,7 @@ server <- function(input, output,session) {
                "accessories" = selectInput("group2","Group 2",choices =c(unlist(fg["accessories"],use.names=F )),selected="All",multiple=TRUE),
                "baby care" = selectInput("group2","Group 2",choices =c(unlist(fg["baby care"],use.names=F )),
                                          selected="All",multiple=TRUE),
-               "fg" = selectInput("group2","Group 2",choices=c(unlist(fg["clothing"],use.names=F )),selected="All",multiple=TRUE),
+               "clothing" = selectInput("group2","Group 2",choices=c(unlist(fg["clothing"],use.names=F )),selected="All",multiple=TRUE),
                "experiences" = selectInput("group2","Group 2",choices =c("experiences"),selected="experiences"),
                "food & drink" = selectInput("group2","Group 2",choices =c(unlist(fg["food & drink"],use.names=F )),selected="All",multiple=TRUE),
                "garden & outdoors" = selectInput("group2","Group 2",choices =c(unlist(fg["garden & outdoors"],use.names=F )),selected="All",multiple=TRUE),
@@ -260,7 +264,6 @@ server <- function(input, output,session) {
             }
             
             
-            
             ### Is the item personalisible or not?
             if(input$personalise == "yes"){
                 personalised <- " > 0"
@@ -362,14 +365,16 @@ server <- function(input, output,session) {
                                               current_gross_price, gross_price_on_sale, delivery_time, delivery_class,
                                               url, family, \"group\", type, current_availability, current_stock_status, partner_state, image_url, 
                                               has_express_delivery,target_age_range,number_of_options, partner_id,
-                                              current_date-date(published_date) as days_live
+                                              current_date-date(published_date) as days_live,
+                                              (CASE WHEN lower(family) IN (\'jewellery\') THEN \"TYPE\" ELSE \"GROUP\" END) as group2
                                               from product 
                                               WHERE current_gross_price BETWEEN ', input$pricemin, ' AND ', input$pricemax, '
                                               AND published_date ', pubDate,  '
                                               AND LOWER(product_name) LIKE (\'%', input$keyword ,'%\')
                                               AND currently_on_sale IN (',sale,')
                                               AND family IN (',fam_keyword,')
-                                              AND \"group\" ', group_keyword,'
+                                              AND (CASE WHEN lower(family) IN (\'jewellery\') THEN TYPE
+                                              ELSE \"GROUP\" END)', group_keyword,'
                                               AND number_of_options', personalised ,'
                                               AND delivery_class ', deliveryOption ,'
                                               AND has_express_delivery ', deliver_express, '
