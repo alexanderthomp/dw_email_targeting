@@ -55,7 +55,9 @@ ui <- fluidPage(
                                    textInput(inputId="pricemax", label="maximum price",value=30),
                                    textInput(inputId = "keyword", label="search for title keyword",value=""),
                                    selectInput(inputId="OnSale",label = "include on sale products?",
-                                               choices = c("doesn\'t matter","yes","no"),selected = "doesn\'t matter")
+                                               choices = c("doesn\'t matter","yes","no"),selected = "doesn\'t matter"),
+                                   selectInput(inputId="partnerBand",label = "Partner Band", 
+                                               choices=c("All","Indigo","Cobalt","Azure","Emerald","Sienna","Amber"),selected="All",multiple = TRUE )
                                    
                             ), 
                             column(3,
@@ -292,17 +294,17 @@ server <- function(input, output,session) {
             ### product sales timeframe stuff
             if(input$date == "recently published"){
                 if(input$publishedDate == "last week"){
-                    pubDate <- Sys.Date() - 8
+                    pubDate <-  paste0("> \'", Sys.Date() - 8,"\'")
                     viewDate1 <- Sys.Date() - 8
                     viewDate2 <- Sys.Date() -1
                 }else{
                     if(input$publishedDate == "last 2 weeks"){
-                        pubDate <- Sys.Date() - 15
+                        pubDate <-  paste0("> \'", Sys.Date() - 15,"\'")
                         viewDate1 <- Sys.Date() - 15
                         viewDate2 <- Sys.Date() -1
                         
                     }else{ 
-                        pubDate <- Sys.Date() - 29
+                        pubDate <-  paste0("> \'", Sys.Date() - 29,"\'")
                         viewDate1 <- Sys.Date() - 29
                         viewDate2 <- Sys.Date() - 1
                     }
@@ -310,11 +312,22 @@ server <- function(input, output,session) {
                 }
                 
             }else{
-                pubDate <- input$daterange[1]
+                pubDate <- paste0("<> \'", input$daterange[1],"\'")
                 viewDate1 <- input$daterange[1]
                 viewDate2 <- input$daterange[2]
             }
             
+            #partner banding
+            if(("All" %in% input$partnerBand)== TRUE & length(input$partnerBand) == 1){
+                bands <- c("Indigo","Cobalt","Azure","Emerald","Sienna","Amber")
+                PartnerBand <- paste0('\'', tolower(bands), '\'', collapse = ",")
+            }else{
+                bands <- input$partnerBand[-grep("All",input$partnerBand)]
+                PartnerBand <- paste0('\'',tolower(bands), '\'',collapse=',')   
+            }
+            
+            
+            ### Start SQL queries to pull data
             print("before query 1")
             ### To aviod promoting products where the partner is on vacation, only select those not.
             query_hols <- 'SELECT DISTINCT noths.dimension_partner_.original_id as partner_id
@@ -345,16 +358,15 @@ server <- function(input, output,session) {
             print("before query 2")
             ### Seelct products. Prereqa: Avilable, in stock ot made to order, partner is active.
             ### the rest come from the parameters input with the buttons.
-            query_prod <- gsub("\n","",paste0('select product_name, product_code, partner_name,
+            query_prod <- gsub("\n","",paste0('select product_name, product_code, partner_name, partner_band,
                                               current_gross_price, gross_price_on_sale, delivery_time, delivery_class,
-                                              url, family, current_availability, current_stock_status, partner_state, image_url, \"group\",
+                                              url, family, \"group\", type, current_availability, current_stock_status, partner_state, image_url, 
                                               has_express_delivery,target_age_range,number_of_options, partner_id,
                                               current_date-date(published_date) as days_live
                                               from product 
                                               WHERE current_gross_price BETWEEN ', input$pricemin, ' AND ', input$pricemax, '
-                                              AND published_date BETWEEN date(\'', as.character(pubDate),  '\') 
-                                              AND date(\'',as.character(viewDate2), '\'
-                                              ) AND LOWER(product_name) LIKE (\'%', input$keyword ,'%\')
+                                              AND published_date ', pubDate,  '
+                                              AND LOWER(product_name) LIKE (\'%', input$keyword ,'%\')
                                               AND currently_on_sale IN (',sale,')
                                               AND family IN (',fam_keyword,')
                                               AND \"group\" ', group_keyword,'
@@ -367,6 +379,8 @@ server <- function(input, output,session) {
                                               AND lower(product_name) not like \'%additional%\' 
                                               AND lower(product_name) not like \'%custom%\' 
                                               AND lower(product_name) not like \'%replacement%\'
+                                              And partner_band IN (',PartnerBand,' )
+                                              
                                               '
                                               ) )
             
@@ -422,6 +436,9 @@ server <- function(input, output,session) {
                     
                 }
                 
+                ### Add ttv per page view
+                full_file$ttvppv <- full_file$ttv / full_file$page_views
+                
                 ### Add in conversion 
                 conversion <- ifelse(full_file$page_views < full_file$num_checkouts, 0, round(full_file$num_checkouts / full_file$page_views,2))
                 conversion <- round(replace(conversion,is.na(conversion),0),2)
@@ -462,12 +479,12 @@ server <- function(input, output,session) {
                 image <- paste0("<a href = \"", productUrl, "\" target=\"_blank\"> <img src=\"", img,"\" height=\"150\"></a>")
                 newtab <- data.frame(cbind(image, full_file2,img,url))
                 
-                toSelect <- c("impact", "image", "product_name","product_code","partner_name","family","group","current_availability", "current_stock_status", "partner_state", "current_gross_price","gross_price_on_sale",
-                              "delivery_time","delivery_class","page_views","ttv","num_checkouts","conversion","img","url")
+                toSelect <- c("impact", "image", "product_name","product_code","partner_name","partner_band", "family","group","type","current_availability", "current_stock_status", "partner_state", "current_gross_price","gross_price_on_sale",
+                              "delivery_time","delivery_class","page_views","ttv","ttvppv","num_checkouts","conversion","img","url")
                 outputTable <-newtab[,match(toSelect,names(newtab))]
                 
-                outputTableNames <- c("Relative Impact", "Image", "Product", "Product Code", "Partner","Family","Group","Availability", "Stock Status", "Partner State", "Price","Sale Price",
-                                      "Delivery Time","Delivery Class","Page Views","TTV","Checkouts","Conversion","img","url")
+                outputTableNames <- c("Relative Impact", "Image", "Product", "Product Code", "Partner","Partner Band", "Family","Group","Type","Availability", "Stock Status", "Partner State", "Price","Sale Price",
+                                      "Delivery Time","Delivery Class","Page Views","TTV","TTV per page view", "Checkouts","Conversion","img","url")
                 colnames(outputTable) <- outputTableNames
                 
                 outputTable
@@ -482,7 +499,7 @@ server <- function(input, output,session) {
     
     
     output$tab1 <- DT::renderDataTable({
-        tab2()[,-c(19,20)]
+        tab2()[,-c(ncol(tab2()) -1,ncol(tab2()))]
     },escape=FALSE, rownames = FALSE,server=TRUE,
     options=list(pageLength=50, searchHighlight = TRUE)
     )
