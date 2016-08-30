@@ -4,6 +4,7 @@ library(DT)
 library(RPostgreSQL)
 library(yaml)
 library(pool)
+library(impactTool)
 
 ### check for config file
 if(dir.exists('/config/conf.yml')){
@@ -53,7 +54,8 @@ ui <- fluidPage(
                             column(3, 
                                    textInput(inputId="pricemin", label="minimum price",value=10),
                                    textInput(inputId="pricemax", label="maximum price",value=30),
-                                   textInput(inputId = "keyword", label="search for title keyword",value=""),
+                                   textInput(inputId = "TitleKeyword", label="search for Title keyword",value=""),
+                                   textInput(inputId = "keyword", label="search for product keyword",value=""),
                                    selectInput(inputId="OnSale",label = "include on sale products?",
                                                choices = c("doesn\'t matter","yes","no"),selected = "doesn\'t matter"),
                                    selectInput(inputId="partnerBand",label = "Partner Band", 
@@ -63,7 +65,10 @@ ui <- fluidPage(
                             column(3,
                                    radioButtons(inputId = "date", label = "product sales time frame", choices = c("recently published", "sales between dates"),
                                                 selected = "recently published"), 
-                                   uiOutput("dateui")
+                                   uiOutput("dateui"),
+                                   radioButtons(inputId="limitSelection",label="return which results?",
+                                                choice=c("Best selling 200","Worst selling 200", "Everything"), selected="Best selling 200"),
+                                   helpText("Selecting \"Everything\" may be slow and could cause a crash, especially in the image grid, depending on how big the query is.")
                             ),
                             column(3,
                                    radioButtons(inputId="delivery",label="has free delivery?",
@@ -310,14 +315,13 @@ server <- function(input, output,session) {
                         viewDate1 <- Sys.Date() - 29
                         viewDate2 <- Sys.Date() - 1
                     }
-                    
                 }
                 
             }else{
-                pubDate <- paste0("<> \'", input$daterange[1],"\'")
-                viewDate1 <- input$daterange[1]
+                pubDate <- paste0("< \'", as.character(input$daterange[2]),"\'")
+                viewDate1 <- input$daterange[1] 
                 viewDate2 <- input$daterange[2]
-            }
+            } 
             
             #partner banding
             if(("All" %in% input$partnerBand)== TRUE & length(input$partnerBand) == 1){
@@ -328,36 +332,7 @@ server <- function(input, output,session) {
                 PartnerBand <- paste0('\'',tolower(bands), '\'',collapse=',')   
             }
             
-            
-            ### Start SQL queries to pull data
             print("before query 1")
-            ### To aviod promoting products where the partner is on vacation, only select those not.
-            query_hols <- 'SELECT DISTINCT noths.dimension_partner_.original_id as partner_id
-            FROM noths.facts_partner_holidays
-            JOIN noths.dimension_partner_
-            ON noths.facts_partner_holidays.partner_dimension_id = noths.dimension_partner_.id
-            WHERE (START_DATE_DIMENSION_ID <
-            (SELECT ID
-            FROM noths.dimension_date
-            WHERE DATE = CURRENT_DATE)
-            AND END_DATE_DIMENSION_ID <
-            (SELECT ID
-            FROM noths.dimension_date
-            WHERE DATE = CURRENT_DATE))
-            OR (START_DATE_DIMENSION_ID >
-            (SELECT ID + 3
-            FROM noths.dimension_date
-            WHERE DATE = CURRENT_DATE)
-            AND END_DATE_DIMENSION_ID >
-            (SELECT ID + 3
-            FROM noths.dimension_date
-            WHERE DATE = CURRENT_DATE))'
-            hols <- dbGetQuery(poolNames,query_hols)    
-            notonhols <- paste0(paste0(hols$partner_id,collapse=","))
-            
-            print("after query 1")
-            
-            print("before query 2")
             ### Seelct products. Prereqa: Avilable, in stock ot made to order, partner is active.
             ### the rest come from the parameters input with the buttons.
             query_prod <- gsub("\n","",paste0('select product_name, product_code, partner_name, partner_band,
@@ -365,11 +340,11 @@ server <- function(input, output,session) {
                                               url, family, \"group\", type, current_availability, current_stock_status, partner_state, image_url, 
                                               has_express_delivery,target_age_range,number_of_options, partner_id,
                                               current_date-date(published_date) as days_live,
-                                              (CASE WHEN lower(family) IN (\'jewellery\') THEN \"TYPE\" ELSE \"GROUP\" END) as group2
+                                              (CASE WHEN lower(family) IN (\'jewellery\') THEN TYPE ELSE \"GROUP\" END) as group2
                                               from product 
                                               WHERE current_gross_price BETWEEN ', input$pricemin, ' AND ', input$pricemax, '
                                               AND published_date ', pubDate,  '
-                                              AND LOWER(product_name) LIKE (\'%', input$keyword ,'%\')
+                                              AND LOWER(product_name) LIKE (\'%', input$TitleKeyword ,'%\')
                                               AND currently_on_sale IN (',sale,')
                                               AND family IN (',fam_keyword,')
                                               AND (CASE WHEN lower(family) IN (\'jewellery\') THEN TYPE
@@ -388,94 +363,27 @@ server <- function(input, output,session) {
                                               '
                                               ) )
             
-         print(query_prod)
+         #print(query_prod)
             products <- dbGetQuery(poolNames,query_prod)    
             
             
             
-            print("after query 2")
+            print("after query 1")
             
             ### If this search returns results, 
             if(dim(products)[1] > 0){
                 product_codes <- paste0(paste0(products$product_code,collapse=","))
                 
                 
-                print("before query 3")
-                ### the products code from above are used int he next searches to limit the results found
-                ### get the page views
-                query_views <- gsub("\n","",paste0('select product_code, sum(number_of_views) as page_views 
-                                                   from noths.product_page_views_by_date  
-                                                   WHERE date BETWEEN \'', as.character(viewDate1), '\'
-                                                   AND \'', as.character(viewDate2), '\'
-                                                   AND product_code IN (',product_codes,')
-                                                   group by product_code') )
-                views <- dbGetQuery(poolNames,query_views)  
+                print("running impact tool function")
                 
-                print("before query 4")
-                ### get the ttv and number of checkouts
-                query_trans <- gsub("\n","",paste0('select product_code, sum(ttv) as TTV,
-                                                   count(distinct checkout_id) as num_checkouts
-                                                   from transaction_line  
-                                                   WHERE date BETWEEN \'', as.character(viewDate1), '\'
-                                                   AND \'', as.character(viewDate2), '\'
-                                                   AND product_code IN (',product_codes,')
-                                                   group by product_code') )
-                trans <- dbGetQuery(poolNames,query_trans)  
-                print("after query 4")
+                imp <- relativeProductImpact(productCodes = product_codes,dateStart = viewDate1, dateEnd = viewDate2, connections = poolNames)
                 
+                full_file <- data.frame(products,imp[match(products$product_code,imp$product_code ),-c(1:3)])
+                full_file2 <- full_file[order(full_file$impact),] 
                 
-                ### put the files together into one table. If there are any NAs, replace them with 0. 
-                ### (i.e. if there are no page views or checkouts)
-                part_file <- data.frame(products, page_views=views[match(products$product_code,views$product_code),-1]) 
-                part_file$page_views <- replace(part_file$page_views,is.na(part_file$page_views),0) 
-                
-                if(dim(trans)[1] == 0){
-                    num_checkouts <- rep(0,dim(part_file)[1])
-                    ttv <- rep(0,dim(part_file)[1])
-                    full_file <- cbind(part_file,ttv,num_checkouts)
-                }else{
-                    full_file <- data.frame(part_file, trans[match(part_file$product_code,trans$product_code),-1])
-                    full_file$ttv <- round(replace(full_file$ttv,is.na(full_file$ttv),0),2)
-                    full_file$num_checkouts <- replace(full_file$num_checkout,is.na(full_file$num_checkout),0)
-                    
-                }
-                
-                ### Add ttv per page view
-                full_file$ttvppv <- full_file$ttv / full_file$page_views
-                
-                ### Add in conversion 
-                conversion <- ifelse(full_file$page_views < full_file$num_checkouts, 0, round(full_file$num_checkouts / full_file$page_views,2))
-                conversion <- round(replace(conversion,is.na(conversion),0),2)
-                
-                ### Put the file together, select only the needed columns
-                full_file2 <- cbind(full_file,conversion)
-                
-                invalid <- which(full_file2$conversion > 0.15 & full_file2$num_checkouts == 1)
-                if(length(invalid) == 0){
-                    full_file2 <- full_file2
-                }else{
-                    full_fileInvalid <- full_file2[invalid, ]
-                    full_fileValid <- full_file2[-invalid, ]
-                    meanConversionByFamily <- sapply(split(full_fileValid, full_fileValid$family), function(x) mean(x$conversion))
-                    
-                    for (i in unique(full_fileValid$family)){
-                        full_fileInvalid[full_fileInvalid$family == i, "conversion"] <- round(meanConversionByFamily[i],2)
-                    }
-                    full_file2 <- rbind(full_fileValid, full_fileInvalid)
-                }
-                
-                
-                if(input$date == "recently published"){
-                    ttv_per_day <- full_file2$ttv / full_file2$days_live
-                }else{
-                    ttv_per_day <- full_file2$ttv / as.numeric(difftime(strptime(viewDate2, format="%Y-%m-%d"), strptime(viewDate1, format="%Y-%m-%d"), units="days"))
-                }
-                ttv_per_dayNorm <- (ttv_per_day - min(ttv_per_day)) / diff(range(ttv_per_day))
-                conversionNorm <- (full_file2$conversion - min(full_file2$conversion)) / diff(range(full_file2$conversion))
-                full_file2$impact <- conversionNorm*ttv_per_dayNorm 
-                full_file2 <- full_file2[order(-full_file2$impact),] 
-                full_file2$impact <- 1:nrow(full_file2)
-                
+                print("finshed impact tool")
+     
                 ### get the images and make the first column
                 url <- full_file2[,which(names(full_file2) =="url")]
                 img <- full_file2[,which(names(full_file2) =="image_url")]
@@ -483,13 +391,34 @@ server <- function(input, output,session) {
                 image <- paste0("<a href = \"", productUrl, "\" target=\"_blank\"> <img src=\"", img,"\" height=\"150\"></a>")
                 newtab <- data.frame(cbind(image, full_file2,img,url))
                 
-                toSelect <- c("impact", "image", "product_name","product_code","partner_name","partner_band", "family","group","type","current_availability", "current_stock_status", "partner_state", "current_gross_price","gross_price_on_sale",
+                ### Add in ttv per page view
+                newtab$ttvppv <- round((newtab$ttv / newtab$page_views),2)
+                
+                toSelect <- c("impact", "image", "product_name","product_code","partner_name","family","group","current_availability", 
+                              "current_stock_status", "partner_state", "current_gross_price","gross_price_on_sale",
                               "delivery_time","delivery_class","page_views","ttv","ttvppv","num_checkouts","conversion","img","url")
                 outputTable <-newtab[,match(toSelect,names(newtab))]
                 
-                outputTableNames <- c("Relative Impact", "Image", "Product", "Product Code", "Partner","Partner Band", "Family","Group","Type","Availability", "Stock Status", "Partner State", "Price","Sale Price",
-                                      "Delivery Time","Delivery Class","Page Views","TTV","TTV per page view", "Checkouts","Conversion","img","url")
+                ### neated output an round numbers
+                outputTable$conversion <- round(outputTable$conversion,4)
+                outputTable$ttv <- round(outputTable$ttv,2)
+                
+                ### 'Pretty' column names
+                outputTableNames <- c("Relative Impact", "Image", "Product", "Product Code", "Partner","Family","Group","Availability", 
+                                      "Stock Status", "Partner State", "Price","Sale Price",
+                                      "Delivery Time","Delivery Class","Page Views","TTV","TTV per Page View", "Checkouts","Conversion","img","url")
                 colnames(outputTable) <- outputTableNames
+      
+                ### select only the required number of objects to view/output
+                if(input$limitSelection == "Best selling 200"){
+                    outputTable <- outputTable[1:200,]
+                }else{
+                    if(input$limitSelection == "Worst selling 200"){
+                        outputTable <- tail(outputTable,200)
+                    }else{
+                        outputTable <- outputTable
+                    }
+                }
                 
                 outputTable
                 
@@ -583,6 +512,12 @@ server <- function(input, output,session) {
              
              <h2> What has data has been removed form the search? </h2>
              <p><font size=4> We have removed any items containing custom and bospoke in the title. 
+             
+             </font></p>
+
+            <h2> Why select only some results? </h2>
+             <p><font size=4> The best way to use this tool is to use it to select a limited number of products.
+                This is is the fastest way. However you can select a large number. But BE WARNED, IT MAY CRASH. And the image grid will crash.  
              
              </font></p>
              

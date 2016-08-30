@@ -13,6 +13,7 @@ RUN sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/a
 RUN apt-get -y install gdebi-core
 RUN apt-get -y install wget curl
 RUN apt-get -y install links2 links lynx w3m
+RUN apt-get -y install libmariadbclient-dev
 RUN apt-get -y install libpq-dev libcurl4-openssl-dev
 RUN apt-get -y install postgresql-client
 RUN wget https://download3.rstudio.org/ubuntu-12.04/x86_64/shiny-server-1.4.2.786-amd64.deb
